@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absensi QR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F6F8;
+    --panel:#FFFFFF;
+    --navy:#16233F;
+    --navy-2:#1F3357;
+    --teal:#0EA5A0;
+    --teal-dark:#0B8A86;
+    --amber:#F5A623;
+    --danger:#E5484D;
+    --text:#101828;
+    --muted:#667085;
+    --line:#E4E7EC;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---- Layout shell ---- */
+  .shell{display:flex;min-height:100vh;}
+  .sidebar{
+    width:230px;flex-shrink:0;background:var(--navy);color:#fff;
+    display:flex;flex-direction:column;padding:24px 16px;
+    position:sticky;top:0;height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:0 8px 24px 8px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:20px;}
+  .brand-mark{width:34px;height:34px;border-radius:9px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-weight:700;font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--navy);flex-shrink:0;}
+  .brand-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;line-height:1.1;}
+  .brand-sub{font-size:11px;color:rgba(255,255,255,.55);}
+
+  .nav-item{
+    display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;
+    color:rgba(255,255,255,.72);cursor:pointer;font-size:14px;font-weight:500;
+    margin-bottom:4px;border:none;background:none;width:100%;text-align:left;transition:.15s;
+  }
+  .nav-item svg{width:18px;height:18px;flex-shrink:0;}
+  .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav-item.active{background:var(--teal);color:var(--navy);font-weight:600;}
+
+  .side-foot{margin-top:auto;padding:12px 8px 0 8px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.4);line-height:1.5;}
+
+  .main{flex:1;min-width:0;padding:32px 40px;}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+  .page-head h1{font-size:24px;margin:0 0 4px 0;font-weight:600;}
+  .page-head p{margin:0;color:var(--muted);font-size:14px;}
+  .today-pill{background:var(--panel);border:1px solid var(--line);padding:8px 14px;border-radius:999px;font-size:13px;color:var(--muted);font-weight:500;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;}
+  .card + .card{margin-top:18px;}
+  .card h2{font-size:15px;margin:0 0 14px 0;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:900px){.grid-2{grid-template-columns:1fr;} .sidebar{width:76px;padding:20px 10px;} .brand-name,.brand-sub,.nav-item span{display:none;} .nav-item{justify-content:center;} .brand{justify-content:center;padding-bottom:20px;} .main{padding:24px 18px;}}
+
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em;}
+  input,select{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;
+    font-size:14px;font-family:'Inter',sans-serif;background:#fff;color:var(--text);margin-bottom:14px;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,165,160,.12);}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:10px 18px;border-radius:9px;border:none;font-size:14px;font-weight:600;
+    cursor:pointer;font-family:'Inter',sans-serif;transition:.15s;
+  }
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-primary:hover{background:var(--navy-2);}
+  .btn-teal{background:var(--teal);color:#fff;}
+  .btn-teal:hover{background:var(--teal-dark);}
+  .btn-ghost{background:#fff;color:var(--text);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--navy);}
+  .btn-danger-ghost{background:#fff;color:var(--danger);border:1px solid #F3D2D3;}
+  .btn-danger-ghost:hover{background:#FEF3F3;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;padding:9px 10px;color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--line);}
+  td{padding:10px 10px;border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  .empty{color:var(--muted);font-size:13.5px;padding:18px 4px;text-align:center;}
+
+  .tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:600;}
+  .tag-green{background:#E7F8EF;color:#12805C;}
+  .tag-gray{background:#F2F4F7;color:var(--muted);}
+
+  .icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;border-radius:6px;}
+  .icon-btn:hover{color:var(--danger);background:#FEF3F3;}
+
+  /* ---- QR ID card ---- */
+  .qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-top:16px;}
+  .id-card{
+    border:1.5px dashed #C6CBD4;border-radius:12px;padding:14px;background:#fff;
+    display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;
+  }
+  .id-card::before{content:"✂";position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--bg);color:#98A2B3;font-size:12px;padding:0 6px;}
+  .id-card .band{width:100%;background:var(--navy);color:#fff;border-radius:7px 7px 0 0;padding:5px 0;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:10px;}
+  .id-card canvas,.id-card img{border-radius:4px;}
+  .id-card .qr-box{width:130px;height:130px;display:flex;align-items:center;justify-content:center;}
+  .lib-warning{background:#FFF6E5;color:#946200;border:1px solid #F5E0AD;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;display:none;}
+  .lib-warning.show{display:block;}
+  .id-card .name{font-weight:700;margin-top:10px;font-size:14px;}
+  .id-card .nis{color:var(--muted);font-size:11.5px;margin-top:2px;}
+
+  /* ---- Scanner ---- */
+  #reader{width:100%;max-width:420px;border-radius:12px;overflow:hidden;border:1px solid var(--line);}
+  .scan-status{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:13.5px;font-weight:600;display:none;}
+  .scan-status.show{display:block;}
+  .scan-status.ok{background:#E7F8EF;color:#12805C;}
+  .scan-status.warn{background:#FFF6E5;color:#946200;}
+  .scan-status.err{background:#FEEEEE;color:#B4232A;}
+
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+  .stat .n{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;}
+  .stat .l{font-size:12px;color:var(--muted);font-weight:500;margin-top:2px;}
+
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;z-index:50;}
+  .toast.show{opacity:1;transform:translateY(0);}
+
+  .helper{font-size:12.5px;color:var(--muted);margin-top:-6px;margin-bottom:14px;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">QR</div>
+      <div>
+        <div class="brand-name">Absensi QR</div>
+        <div class="brand-sub">Sistem kehadiran sekolah</div>
+      </div>
+    </div>
+    <button class="nav-item active" data-view="kelas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4"/><path d="M3 17l9 4 9-4"/></svg>
+      <span>Kelas & Siswa</span>
+    </button>
+    <button class="nav-item" data-view="cetak">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></svg>
+      <span>Cetak Kartu QR</span>
+    </button>
+    <button class="nav-item" data-view="scan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M4 12h16" stroke-dasharray="1 3"/></svg>
+      <span>Scan Absensi</span>
+    </button>
+    <button class="nav-item" data-view="rekap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="12" y="7" width="3" height="11"/><rect x="17" y="13" width="3" height="5"/></svg>
+      <span>Rekap & Export</span>
+    </button>
+    <div class="side-foot">Data tersimpan di browser perangkat ini (localStorage). Gunakan perangkat yang sama untuk scan &amp; export.</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ===================== VIEW: KELAS & SISWA ===================== -->
+    <div class="view active" id="view-kelas">
+      <div class="page-head">
+        <div>
+          <h1>Kelas &amp; Siswa</h1>
+          <p>Kelola daftar kelas dan siswa sebelum mencetak kartu QR.</p>
+        </div>
+        <div class="today-pill" id="todayPill1"></div>
+      </div>
+
+      <div class="card">
+        <h2>Cadangkan / Pindahkan Data</h2>
+        <div class="helper">Data hanya tersimpan di browser perangkat ini (tidak otomatis tersinkron lewat link). Ekspor untuk membuat file cadangan, lalu Impor file itu di perangkat lain agar datanya sama.</div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="exportData()">⬇ Ekspor Data (Backup)</button>
+          <label class="btn btn-ghost" style="cursor:pointer;margin:0;">
+            ⬆ Impor Data (Restore)
+            <input type="file" accept="application/json" style="display:none" onchange="importData(event)">
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Impor Siswa dari Excel (Massal)</h2>
+        <div class="helper">Download template dulu, isi kolom Nama, NIS, dan Kelas, lalu impor kembali di sini. Kelas yang belum ada akan otomatis dibuat. Gunakan template ini setiap kali agar formatnya selalu sama.</div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="downloadStudentTemplate()">⬇ Download Template Excel</button>
+          <label class="btn btn-teal" style="cursor:pointer;margin:0;">
+            ⬆ Impor Siswa dari Excel
+            <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importStudentsExcel(event)">
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Reset Data</h2>
+        <div class="helper">Menghapus SEMUA data (kelas, siswa, dan riwayat absensi) di perangkat ini secara permanen. Lakukan Ekspor Data (backup) terlebih dahulu jika masih diperlukan.</div>
+        <div class="btn-row">
+          <button class="btn btn-danger-ghost" onclick="resetData()">🗑 Hapus Semua Data</button>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Tambah Kelas</h2>
+          <label for="className">Nama Kelas</label>
+          <input id="className" placeholder="Contoh: 7A, XI IPA 2">
+          <button class="btn btn-primary" onclick="addClass()">Tambah Kelas</button>
+        </div>
+        <div class="card">
+          <h2>Tambah Siswa</h2>
+          <label for="studentClass">Kelas</label>
+          <select id="studentClass"></select>
+          <label for="studentName">Nama Siswa</label>
+          <input id="studentName" placeholder="Nama lengkap siswa">
+          <label for="studentNis">NIS / ID Siswa (opsional)</label>
+          <input id="studentNis" placeholder="Kosongkan untuk dibuat otomatis">
+          <button class="btn btn-primary" onclick="addStudent()">Tambah Siswa</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Daftar Kelas &amp; Siswa</h2>
+        <label for="filterClassList" style="margin-bottom:10px;">Tampilkan Kelas</label>
+        <select id="filterClassList" onchange="renderStudentTable()" style="max-width:260px;"></select>
+        <table id="studentTable"><thead>
+          <tr><th>Nama</th><th>NIS</th><th>Kelas</th><th></th></tr>
+        </thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <!-- ===================== VIEW: CETAK KARTU QR ===================== -->
+    <div class="view" id="view-cetak">
+      <div class="page-head">
+        <div>
+          <h1>Cetak Kartu QR</h1>
+          <p>Setiap siswa mendapat kartu QR unik untuk dipindai saat absen.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="btn-row" style="margin-bottom:16px;align-items:flex-end;">
+          <div style="flex:1;min-width:200px;">
+            <label for="printClass">Pilih Kelas</label>
+            <select id="printClass" onchange="renderQrCards()"></select>
+          </div>
+          <button class="btn btn-teal" onclick="window.print()">Cetak Halaman Ini</button>
+        </div>
+        <div class="helper">Gunting mengikuti garis putus-putus lalu bagikan ke siswa, atau tempel di buku/kartu pelajar.</div>
+        <div class="lib-warning" id="qrLibWarning">⚠ Gagal memuat library pembuat QR dari internet. Pastikan perangkat terhubung ke internet lalu muat ulang (refresh) halaman ini.</div>
+        <div class="qr-grid" id="qrGrid"></div>
+      </div>
+    </div>
+
+    <!-- ===================== VIEW: SCAN ABSENSI ===================== -->
+    <div class="view" id="view-scan">
+      <div class="page-head">
+        <div>
+          <h1>Scan Absensi</h1>
+          <p>Arahkan kamera ke kartu QR siswa untuk mencatat kehadiran.</p>
+        </div>
+        <div class="today-pill" id="todayPill2"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Pengaturan Sesi</h2>
+          <label for="scanClass">Kelas</label>
+          <select id="scanClass" onchange="onScanClassChange()"></select>
+          <label for="scanDate">Tanggal</label>
+          <input type="date" id="scanDate" onchange="renderScanList()">
+          <div class="btn-row">
+            <button class="btn btn-teal" id="startScanBtn" onclick="startScanner()">Mulai Kamera</button>
+            <button class="btn btn-ghost" id="stopScanBtn" onclick="stopScanner()" disabled>Hentikan Kamera</button>
+          </div>
+          <div style="margin-top:16px;" id="reader"></div>
+          <div class="scan-status" id="scanStatus"></div>
+        </div>
+
+        <div class="card">
+          <h2>Hadir Hari Ini <span class="tag tag-gray" id="scanCount">0 siswa</span></h2>
+          <table id="scanTable"><thead><tr><th>Nama</th><th>Jam</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== VIEW: REKAP & EXPORT ===================== -->
+    <div class="view" id="view-rekap">
+      <div class="page-head">
+        <div>
+          <h1>Rekap &amp; Export</h1>
+          <p>Lihat rekap kehadiran per kelas dan unduh sebagai Excel.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="grid-2">
+          <div>
+            <label for="rekapClass">Kelas</label>
+            <select id="rekapClass" onchange="renderRekap()"></select>
+          </div>
+          <div>
+            <label for="rekapMode">Rentang</label>
+            <select id="rekapMode" onchange="onRekapModeChange()">
+              <option value="single">Satu Tanggal</option>
+              <option value="range">Rentang Tanggal</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2" id="rekapDateFields">
+          <div>
+            <label for="rekapDateFrom">Dari Tanggal</label>
+            <input type="date" id="rekapDateFrom" onchange="renderRekap()">
+          </div>
+          <div id="rekapDateToWrap" style="display:none;">
+            <label for="rekapDateTo">Sampai Tanggal</label>
+            <input type="date" id="rekapDateTo" onchange="renderRekap()">
+          </div>
+        </div>
+
+        <div class="helper" style="margin-top:2px;">Sabtu &amp; Minggu otomatis tidak dihitung sebagai hari efektif di kolom "Total Hari" dan saat export Excel.</div>
+        <div class="stat-row">
+          <div class="stat"><div class="n" id="statHadir">0</div><div class="l">Kehadiran Tercatat</div></div>
+          <div class="stat"><div class="n" id="statSiswa">0</div><div class="l">Total Siswa di Kelas</div></div>
+          <div class="stat"><div class="n" id="statPersen">0%</div><div class="l">Rata-rata Kehadiran</div></div>
+        </div>
+
+        <div class="btn-row" style="margin-bottom:14px;">
+          <button class="btn btn-primary" onclick="exportExcel()">⬇ Download Excel (.xlsx)</button>
+        </div>
+
+        <table id="rekapTable"><thead><tr><th>Nama</th><th>NIS</th><th>Kehadiran</th><th>Status</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =======================================================
+   DATA LAYER (localStorage)
+   classes:   [{id, name}]
+   students:  [{id, nis, name, classId}]
+   attendance:[{id, studentId, classId, date:'YYYY-MM-DD', time:'HH:MM:SS'}]
+======================================================= */
+const DB_KEY = 'absensiqr_db_v1';
+function loadDB(){
+  const raw = localStorage.getItem(DB_KEY);
+  if(raw) return JSON.parse(raw);
+  return {classes:[], students:[], attendance:[]};
+}
+function saveDB(){ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+let db = loadDB();
+
+function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-3); }
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function fmtDate(str){
+  const d = new Date(str+'T00:00:00');
+  return d.toLocaleDateString('id-ID',{weekday:'long', year:'numeric', month:'long', day:'numeric'});
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* =======================================================
+   NAVIGATION
+======================================================= */
+document.querySelectorAll('.nav-item').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const previousView = document.querySelector('.nav-item.active')?.dataset.view;
+    if(previousView === 'scan' && btn.dataset.view !== 'scan'){
+      stopScanner();
+    }
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    if(btn.dataset.view === 'cetak') renderQrCards();
+    if(btn.dataset.view === 'scan') renderScanList();
+    if(btn.dataset.view === 'rekap') renderRekap();
+  });
+});
+
+window.addEventListener('beforeunload', ()=>{
+  if(scannerRunning && html5QrCode){
+    try{ html5QrCode.stop(); }catch(e){}
+  }
+});
+
+document.getElementById('todayPill1').textContent = fmtDate(todayStr());
+document.getElementById('todayPill2').textContent = fmtDate(todayStr());
+document.getElementById('scanDate').value = todayStr();
+document.getElementById('rekapDateFrom').value = todayStr();
+
+/* =======================================================
+   CLASS / STUDENT MANAGEMENT
+======================================================= */
+function addClass(){
+  const input = document.getElementById('className');
+  const name = input.value.trim();
+  if(!name){ toast('Nama kelas tidak boleh kosong'); return; }
+  if(db.classes.some(c=>c.name.toLowerCase()===name.toLowerCase())){ toast('Kelas sudah ada'); return; }
+  db.classes.push({id: uid('cls'), name});
+  saveDB();
+  input.value='';
+  refreshClassDropdowns();
+  renderStudentTable();
+  toast('Kelas "'+name+'" ditambahkan');
+}
+
+function addStudent(){
+  const classId = document.getElementById('studentClass').value;
+  const name = document.getElementById('studentName').value.trim();
+  let nis = document.getElementById('studentNis').value.trim();
+  if(!classId){ toast('Tambahkan kelas terlebih dahulu'); return; }
+  if(!name){ toast('Nama siswa tidak boleh kosong'); return; }
+  if(!nis){ nis = 'AUTO'+Math.floor(1000+Math.random()*9000); }
+  const id = uid('std');
+  db.students.push({id, nis, name, classId});
+  saveDB();
+  document.getElementById('studentName').value='';
+  document.getElementById('studentNis').value='';
+  renderStudentTable();
+  toast('Siswa "'+name+'" ditambahkan');
+}
+
+function deleteStudent(id){
+  if(!confirm('Hapus siswa ini? Riwayat absensinya juga akan dihapus.')) return;
+  db.students = db.students.filter(s=>s.id!==id);
+  db.attendance = db.attendance.filter(a=>a.studentId!==id);
+  saveDB();
+  renderStudentTable();
+}
+
+function deleteClass(id){
+  const cls = db.classes.find(c=>c.id===id);
+  if(!confirm('Hapus kelas "'+cls.name+'"? Semua siswa & data absensi di kelas ini juga akan dihapus.')) return;
+  db.classes = db.classes.filter(c=>c.id!==id);
+  const studentIds = db.students.filter(s=>s.classId===id).map(s=>s.id);
+  db.students = db.students.filter(s=>s.classId!==id);
+  db.attendance = db.attendance.filter(a=>!studentIds.includes(a.studentId));
+  saveDB();
+  refreshClassDropdowns();
+  renderStudentTable();
+}
+
+function refreshClassDropdowns(){
+  const selects = ['studentClass','filterClassList','printClass','scanClass','rekapClass'];
+  selects.forEach(id=>{
+    const el = document.getElementById(id);
+    const prevVal = el.value;
+    let opts = db.classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    if(id==='filterClassList'){ opts = '<option value="">Semua Kelas</option>' + opts; }
+    el.innerHTML = opts || '<option value="">Belum ada kelas</option>';
+    if(db.classes.some(c=>c.id===prevVal)) el.value = prevVal;
+  });
+}
+
+function renderStudentTable(){
+  const filterId = document.getElementById('filterClassList').value;
+  const tbody = document.querySelector('#studentTable tbody');
+  let list = db.students.slice();
+  if(filterId) list = list.filter(s=>s.classId===filterId);
+  if(list.length===0){
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">Belum ada siswa. Tambahkan siswa di form atas.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(s=>{
+    const cls = db.classes.find(c=>c.id===s.classId);
+    return `<tr>
+      <td>${s.name}</td>
+      <td class="mono">${s.nis}</td>
+      <td>${cls ? cls.name : '-'}</td>
+      <td><button class="icon-btn" onclick="deleteStudent('${s.id}')" title="Hapus siswa">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* =======================================================
+   RESET DATA
+======================================================= */
+function resetData(){
+  const step1 = confirm('PERINGATAN: Ini akan menghapus SEMUA data (kelas, siswa, dan riwayat absensi) di perangkat ini secara permanen.\n\nPastikan sudah melakukan "Ekspor Data (Backup)" jika masih diperlukan.\n\nLanjutkan hapus semua data?');
+  if(!step1) return;
+  const step2 = confirm('Konfirmasi sekali lagi: data yang dihapus TIDAK BISA dikembalikan kecuali kamu punya file backup.\n\nYakin ingin menghapus semua data sekarang?');
+  if(!step2) return;
+
+  db = {classes:[], students:[], attendance:[]};
+  saveDB();
+  refreshClassDropdowns();
+  renderStudentTable();
+  renderQrCards();
+  renderScanList();
+  renderRekap();
+  toast('Semua data telah dihapus');
+}
+
+/* =======================================================
+   IMPOR SISWA DARI EXCEL (TEMPLATE)
+======================================================= */
+function downloadStudentTemplate(){
+  const data = [
+    { 'Nama': 'Contoh: Siti Aminah', 'NIS': '1001', 'Kelas': 'Contoh: 7A' },
+    { 'Nama': '', 'NIS': '', 'Kelas': '' }
+  ];
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:28},{wch:14},{wch:16}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Template Siswa');
+  XLSX.writeFile(wb, 'Template_Import_Siswa.xlsx');
+  toast('Template diunduh');
+}
+
+function importStudentsExcel(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      if(rows.length===0){ alert('File kosong atau format tidak sesuai dengan template.'); return; }
+
+      let added = 0, skipped = 0;
+      rows.forEach(row=>{
+        const name = String(row['Nama']||'').trim();
+        let nis = String(row['NIS']||'').trim();
+        const className = String(row['Kelas']||'').trim();
+        if(!name || !className || name.toLowerCase().startsWith('contoh') || className.toLowerCase().startsWith('contoh')){
+          skipped++; return;
+        }
+        let cls = db.classes.find(c=>c.name.toLowerCase()===className.toLowerCase());
+        if(!cls){ cls = {id: uid('cls'), name: className}; db.classes.push(cls); }
+        if(!nis) nis = 'AUTO'+Math.floor(1000+Math.random()*9000);
+        db.students.push({id: uid('std'), nis, name, classId: cls.id});
+        added++;
+      });
+
+      if(added===0){ alert('Tidak ada data siswa valid yang ditemukan. Pastikan menggunakan template dan mengisi kolom Nama & Kelas.'); return; }
+      saveDB();
+      refreshClassDropdowns();
+      renderStudentTable();
+      toast(added + ' siswa berhasil diimpor' + (skipped ? ', ' + skipped + ' baris dilewati' : ''));
+    }catch(err){
+      alert('Gagal membaca file. Pastikan file adalah hasil dari template yang disediakan.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* =======================================================
+   BACKUP / RESTORE DATA (pindah data antar perangkat)
+======================================================= */
+function exportData(){
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'absensiqr-backup-' + todayStr() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('File cadangan diunduh');
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!Array.isArray(data.classes) || !Array.isArray(data.students) || !Array.isArray(data.attendance)){
+        throw new Error('format tidak sesuai');
+      }
+      if(!confirm('Mengimpor akan MENIMPA seluruh data di perangkat ini dengan isi file cadangan. Lanjutkan?')) return;
+      db = data;
+      saveDB();
+      refreshClassDropdowns();
+      renderStudentTable();
+      toast('Data berhasil dipulihkan');
+    }catch(err){
+      alert('Gagal impor: file bukan file cadangan yang valid.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* =======================================================
+   CETAK KARTU QR
+======================================================= */
+function renderQrCards(){
+  const classId = document.getElementById('printClass').value;
+  const grid = document.getElementById('qrGrid');
+  const warning = document.getElementById('qrLibWarning');
+
+  if(typeof QRCode === 'undefined'){
+    warning.classList.add('show');
+    grid.innerHTML = '';
+    return;
+  }
+  warning.classList.remove('show');
+
+  const list = db.students.filter(s=>s.classId===classId);
+  if(!classId){ grid.innerHTML = '<p class="empty">Pilih kelas terlebih dahulu.</p>'; return; }
+  if(list.length===0){ grid.innerHTML = '<p class="empty">Belum ada siswa di kelas ini.</p>'; return; }
+  const cls = db.classes.find(c=>c.id===classId);
+  grid.innerHTML = list.map(s=>`
+    <div class="id-card">
+      <div class="band">${cls.name}</div>
+      <div class="qr-box" id="qr-${s.id}"></div>
+      <div class="name">${s.name}</div>
+      <div class="nis mono">${s.nis}</div>
+    </div>
+  `).join('');
+  list.forEach(s=>{
+    try{
+      new QRCode(document.getElementById('qr-'+s.id), {
+        text: s.id,
+        width: 130,
+        height: 130,
+        colorDark: '#16233F',
+        colorLight: '#FFFFFF',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }catch(err){
+      document.getElementById('qr-'+s.id).innerHTML = '<span style="font-size:11px;color:var(--danger)">Gagal membuat QR</span>';
+    }
+  });
+}
+
+/* =======================================================
+   SCAN ABSENSI
+======================================================= */
+let html5QrCode = null;
+let scannerRunning = false;
+
+function onScanClassChange(){ renderScanList(); }
+
+function startScanner(){
+  const classId = document.getElementById('scanClass').value;
+  if(!classId){ toast('Pilih kelas terlebih dahulu'); return; }
+  if(scannerRunning) return;
+  document.getElementById('startScanBtn').disabled = true;
+  html5QrCode = new Html5Qrcode("reader");
+  const config = { fps: 10, qrbox: { width: 230, height: 230 } };
+  html5QrCode.start(
+    { facingMode: "environment" },
+    config,
+    onScanSuccess,
+    ()=>{} // ignore per-frame scan failures
+  ).then(()=>{
+    scannerRunning = true;
+    document.getElementById('startScanBtn').disabled = true;
+    document.getElementById('stopScanBtn').disabled = false;
+  }).catch(err=>{
+    document.getElementById('startScanBtn').disabled = false;
+    showScanStatus('err', 'Tidak dapat mengakses kamera: ' + err + ' — coba tutup aplikasi/tab lain yang memakai kamera, lalu refresh halaman ini.');
+  });
+}
+
+function stopScanner(){
+  if(html5QrCode && scannerRunning){
+    html5QrCode.stop().then(()=>{
+      html5QrCode.clear();
+      scannerRunning = false;
+      document.getElementById('startScanBtn').disabled = false;
+      document.getElementById('stopScanBtn').disabled = true;
+    });
+  }
+}
+
+let lastScanId = null, lastScanTime = 0;
+function onScanSuccess(decodedText){
+  const now = Date.now();
+  if(decodedText === lastScanId && now - lastScanTime < 3000) return; // cegah scan ganda beruntun
+  lastScanId = decodedText; lastScanTime = now;
+
+  const classId = document.getElementById('scanClass').value;
+  const date = document.getElementById('scanDate').value || todayStr();
+  const student = db.students.find(s=>s.id===decodedText);
+
+  if(!student){
+    showScanStatus('err', 'QR tidak dikenali / bukan siswa terdaftar.');
+    return;
+  }
+  if(student.classId !== classId){
+    const actualCls = db.classes.find(c=>c.id===student.classId);
+    showScanStatus('warn', `${student.name} terdaftar di kelas ${actualCls?actualCls.name:'lain'}, bukan kelas yang dipilih.`);
+    return;
+  }
+  const already = db.attendance.find(a=>a.studentId===student.id && a.date===date);
+  if(already){
+    showScanStatus('warn', `${student.name} sudah tercatat hadir pukul ${already.time}.`);
+    return;
+  }
+  const time = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  db.attendance.push({id: uid('att'), studentId: student.id, classId, date, time});
+  saveDB();
+  showScanStatus('ok', `✓ ${student.name} tercatat hadir pukul ${time}.`);
+  renderScanList();
+}
+
+function showScanStatus(type, msg){
+  const el = document.getElementById('scanStatus');
+  el.className = 'scan-status show ' + type;
+  el.textContent = msg;
+}
+
+function renderScanList(){
+  const classId = document.getElementById('scanClass').value;
+  const date = document.getElementById('scanDate').value || todayStr();
+  const tbody = document.querySelector('#scanTable tbody');
+  const records = db.attendance.filter(a=>a.classId===classId && a.date===date)
+    .map(a=>({...a, student: db.students.find(s=>s.id===a.studentId)}))
+    .filter(r=>r.student)
+    .sort((a,b)=> a.time < b.time ? 1 : -1);
+  document.getElementById('scanCount').textContent = records.length + ' siswa';
+  if(records.length===0){
+    tbody.innerHTML = '<tr><td colspan="3" class="empty">Belum ada siswa yang discan.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = records.map(r=>`
+    <tr>
+      <td>${r.student.name}</td>
+      <td class="mono">${r.time}</td>
+      <td><button class="icon-btn" onclick="removeAttendance('${r.id}')" title="Batalkan">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+function removeAttendance(attId){
+  db.attendance = db.attendance.filter(a=>a.id!==attId);
+  saveDB();
+  renderScanList();
+  renderRekap();
+}
+
+/* =======================================================
+   REKAP & EXPORT
+======================================================= */
+function onRekapModeChange(){
+  const mode = document.getElementById('rekapMode').value;
+  document.getElementById('rekapDateToWrap').style.display = mode==='range' ? 'block' : 'none';
+  document.getElementById('rekapDateFrom').previousElementSibling.textContent = mode==='range' ? 'Dari Tanggal' : 'Tanggal';
+  renderRekap();
+}
+
+function getRekapDates(){
+  const mode = document.getElementById('rekapMode').value;
+  const from = document.getElementById('rekapDateFrom').value || todayStr();
+  const to = mode==='range' ? (document.getElementById('rekapDateTo').value || from) : from;
+  const dates = [];
+  let d = new Date(from+'T00:00:00');
+  const end = new Date(to+'T00:00:00');
+  while(d <= end){
+    const day = d.getDay(); // 0 = Minggu, 6 = Sabtu
+    if(day !== 0 && day !== 6){
+      dates.push(d.toISOString().slice(0,10));
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return dates;
+}
+
+function renderRekap(){
+  const classId = document.getElementById('rekapClass').value;
+  const tbody = document.querySelector('#rekapTable tbody');
+  if(!classId){
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">Pilih kelas untuk melihat rekap.</td></tr>';
+    document.getElementById('statHadir').textContent='0';
+    document.getElementById('statSiswa').textContent='0';
+    document.getElementById('statPersen').textContent='0%';
+    return;
+  }
+  const dates = getRekapDates();
+  const students = db.students.filter(s=>s.classId===classId);
+  let totalHadir = 0;
+
+  const rows = students.map(s=>{
+    const hadirDates = db.attendance.filter(a=>a.studentId===s.id && dates.includes(a.date));
+    totalHadir += hadirDates.length;
+    const pct = dates.length ? Math.round((hadirDates.length/dates.length)*100) : 0;
+    const statusTag = pct===100 ? '<span class="tag tag-green">Lengkap</span>' : (pct===0 ? '<span class="tag tag-gray">Belum hadir</span>' : `<span class="tag tag-gray">${pct}%</span>`);
+    return {name:s.name, nis:s.nis, count:hadirDates.length, total:dates.length, statusTag};
+  });
+
+  if(rows.length===0){
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">Belum ada siswa di kelas ini.</td></tr>';
+  } else {
+    tbody.innerHTML = rows.map(r=>`
+      <tr><td>${r.name}</td><td class="mono">${r.nis}</td><td>${r.count} / ${r.total} hari</td><td>${r.statusTag}</td></tr>
+    `).join('');
+  }
+
+  document.getElementById('statHadir').textContent = totalHadir;
+  document.getElementById('statSiswa').textContent = students.length;
+  const maxPossible = students.length * dates.length;
+  document.getElementById('statPersen').textContent = maxPossible ? Math.round((totalHadir/maxPossible)*100)+'%' : '0%';
+}
+
+function exportExcel(){
+  const classId = document.getElementById('rekapClass').value;
+  if(!classId){ toast('Pilih kelas terlebih dahulu'); return; }
+  const cls = db.classes.find(c=>c.id===classId);
+  const dates = getRekapDates();
+  const students = db.students.filter(s=>s.classId===classId);
+  if(students.length===0){ toast('Belum ada siswa di kelas ini'); return; }
+
+  // Sheet 1: rekap ringkas (Nama, NIS, jumlah hadir, persentase)
+  const summary = students.map(s=>{
+    const hadirDates = db.attendance.filter(a=>a.studentId===s.id && dates.includes(a.date));
+    const pct = dates.length ? Math.round((hadirDates.length/dates.length)*100) : 0;
+    return { 'Nama': s.name, 'NIS': s.nis, 'Jumlah Hadir': hadirDates.length, 'Total Hari': dates.length, 'Persentase (%)': pct };
+  });
+
+  // Sheet 2: detail per tanggal (matrix Nama x Tanggal -> Hadir/-)
+  const detail = students.map(s=>{
+    const row = { 'Nama': s.name, 'NIS': s.nis };
+    dates.forEach(d=>{
+      const rec = db.attendance.find(a=>a.studentId===s.id && a.date===d);
+      row[d] = rec ? ('Hadir ('+rec.time+')') : '-';
+    });
+    return row;
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.json_to_sheet(summary);
+  const ws2 = XLSX.utils.json_to_sheet(detail);
+  XLSX.utils.book_append_sheet(wb, ws1, 'Rekap Ringkas');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Detail Harian');
+
+  const rangeLabel = dates.length>1 ? `${dates[0]}_sd_${dates[dates.length-1]}` : dates[0];
+  const filename = `Absensi_${cls.name.replace(/\s+/g,'')}_${rangeLabel}.xlsx`;
+  XLSX.writeFile(wb, filename);
+  toast('File "'+filename+'" diunduh');
+}
+
+/* =======================================================
+   INIT
+======================================================= */
+refreshClassDropdowns();
+renderStudentTable();
+</script>
+</body>
+</html>
